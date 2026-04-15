@@ -90,6 +90,7 @@ def edit_seller(sid):
         seller.name = request.form.get('name')
         seller.rating = float(request.form.get('rating', 0))
         seller.trust_score = float(request.form.get('trust_score', 0))
+        seller.is_verified = 'is_verified' in request.form
         db.session.commit()
         flash('Seller updated.', 'success')
         return redirect(url_for('admin.dashboard'))

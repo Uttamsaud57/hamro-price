@@ -58,9 +58,12 @@ def seed_data():
         return  # Already seeded
 
     sellers = [
-        Seller(name='Daraz Nepal', rating=4.2, trust_score=8.5),
-        Seller(name='SastoDeal', rating=4.0, trust_score=8.0),
-        Seller(name='HamroBazar', rating=3.8, trust_score=7.5),
+        Seller(name='Daraz Nepal', rating=4.2, trust_score=8.5,
+               is_verified=True, website='https://daraz.com.np'),
+        Seller(name='SastoDeal', rating=4.0, trust_score=8.0,
+               is_verified=True, website='https://sastodeal.com'),
+        Seller(name='HamroBazar', rating=3.8, trust_score=7.5,
+               is_verified=False, website='https://hamrobazar.com'),
     ]
     db.session.add_all(sellers)
     db.session.flush()

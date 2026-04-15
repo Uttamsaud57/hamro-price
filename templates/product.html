@@ -70,8 +70,13 @@
           <tr {% if loop.first %}class="best-price-row"{% endif %}>
             <td>
               <span class="fw-600" style="font-weight:600;">{{ p.seller.name }}</span>
+              {% if p.seller.is_verified %}
+                <span class="badge-green ms-1">
+                  <i class="bi bi-patch-check-fill me-1"></i>Verified
+                </span>
+              {% endif %}
               {% if loop.first %}
-                <span class="badge-green ms-1">Cheapest</span>
+                <span class="badge-orange ms-1">Cheapest</span>
               {% endif %}
             </td>
             <td>

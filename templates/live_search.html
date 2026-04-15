@@ -46,7 +46,13 @@
         <td>{{ loop.index }}</td>
         <td>{{ item.name }}</td>
         <td>
-          <span class="badge bg-secondary">{{ item.seller }}</span>
+          {% if item.seller in ['Daraz Nepal', 'SastoDeal'] %}
+            <span class="badge-green">
+              <i class="bi bi-patch-check-fill me-1"></i>{{ item.seller }}
+            </span>
+          {% else %}
+            <span class="badge-navy">{{ item.seller }}</span>
+          {% endif %}
         </td>
         <td>
           Rs. {{ "{:,.0f}".format(item.price) }}

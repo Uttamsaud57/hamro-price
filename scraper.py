@@ -127,18 +127,60 @@ def scrape_sastodeal(query):
 
 
 # ---------------------------------------------------------------------------
+# HamroBazar
+# ---------------------------------------------------------------------------
+def scrape_hamrobazar(query):
+    """Search HamroBazar and return top product listings."""
+    url = f'https://hamrobazar.com/search?q={query.replace(" ", "+")}'
+    soup = _get(url)
+    if not soup:
+        return []
+
+    results = []
+    # HamroBazar product cards
+    cards = soup.select('div.product-card, article.product-item, div.item-card')[:5]
+
+    for card in cards:
+        try:
+            name_el = card.select_one('h2, h3, .product-title, .item-title, a[title]')
+            price_el = card.select_one('.price, .product-price, span[class*="price"]')
+            link_el = card.select_one('a[href]')
+
+            if not (name_el and price_el and link_el):
+                continue
+
+            price = _parse_price(price_el.get_text())
+            if not price:
+                continue
+
+            link = link_el.get('href', '')
+            if link.startswith('/'):
+                link = 'https://hamrobazar.com' + link
+
+            results.append({
+                'name': name_el.get('title') or name_el.get_text(strip=True),
+                'price': price,
+                'link': link,
+                'seller': 'HamroBazar'
+            })
+        except Exception:
+            continue
+
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Unified search — runs all scrapers and merges results
 # ---------------------------------------------------------------------------
 def search_all(query):
     """
     Run all scrapers for a query.
     Returns merged list sorted by price ascending.
-    Falls back to empty list if all scrapers fail.
     """
     all_results = []
     all_results.extend(scrape_daraz(query))
     all_results.extend(scrape_sastodeal(query))
+    all_results.extend(scrape_hamrobazar(query))
 
-    # Sort cheapest first
     all_results.sort(key=lambda x: x['price'])
     return all_results

@@ -1,31 +1,33 @@
 """
-image_search.py – Match an uploaded image to products.
+image_search.py – Match uploaded image to products.
 
-Phase 1 (now):  Keyword matching from filename + basic image color analysis.
-Phase 2 (later): Swap match() with OpenCV feature matching or a TensorFlow
-                 image embedding model.
+Phase 1 (now):
+  - Filename keyword matching (primary signal)
+  - Color histogram similarity via Pillow (secondary signal)
+  - Keyword map for common Nepali market products
+
+Phase 2 (later): Replace match() with OpenCV SIFT/ORB or
+                 a TensorFlow MobileNet embedding model.
 """
 
 import os
 import re
 from PIL import Image
 
-
-# Keywords mapped to product name fragments
-# Extend this dict as you add more products
 KEYWORD_MAP = {
-    'samsung': 'samsung',
-    'iphone': 'iphone',
-    'apple': 'iphone',
-    'sony': 'sony',
-    'headphone': 'sony',
-    'laptop': 'laptop',
-    'hp': 'hp',
-    'phone': 'samsung',
-    'mobile': 'samsung',
+    'samsung': 'samsung', 'galaxy': 'samsung',
+    'iphone': 'iphone', 'apple': 'iphone',
+    'sony': 'sony', 'headphone': 'sony', 'wh': 'sony',
+    'laptop': 'laptop', 'hp': 'hp', 'notebook': 'laptop',
+    'phone': 'samsung', 'mobile': 'samsung', 'smartphone': 'samsung',
+    'watch': 'watch', 'tablet': 'tablet', 'ipad': 'tablet',
+    'camera': 'camera', 'canon': 'camera', 'nikon': 'camera',
 }
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
+
+# Verified marketplaces — used for trust scoring
+VERIFIED_SELLERS = {'daraz nepal', 'sastodeal'}
 
 
 def allowed_file(filename):
@@ -34,79 +36,79 @@ def allowed_file(filename):
 
 
 def _keywords_from_filename(filename):
-    """Extract words from filename, ignoring extension and separators."""
     name = os.path.splitext(filename)[0]
-    words = re.split(r'[\s_\-\.]+', name.lower())
-    return words
+    return re.split(r'[\s_\-\.]+', name.lower())
 
 
-def _dominant_color_hint(filepath):
-    """
-    Very basic: returns a color label from the image's average color.
-    Used as a weak secondary signal (not critical for matching).
-    """
+def _color_histogram(filepath, bins=8):
+    """Return a normalized RGB histogram as a flat list."""
     try:
-        img = Image.open(filepath).convert('RGB').resize((50, 50))
-        pixels = list(img.getdata())
-        avg_r = sum(p[0] for p in pixels) / len(pixels)
-        avg_g = sum(p[1] for p in pixels) / len(pixels)
-        avg_b = sum(p[2] for p in pixels) / len(pixels)
-
-        if avg_r > 180 and avg_g < 100 and avg_b < 100:
-            return 'red'
-        elif avg_r < 100 and avg_g < 100 and avg_b > 180:
-            return 'blue'
-        elif avg_r > 180 and avg_g > 180 and avg_b > 180:
-            return 'white'
-        elif avg_r < 80 and avg_g < 80 and avg_b < 80:
-            return 'black'
-        else:
-            return 'unknown'
+        img = Image.open(filepath).convert('RGB').resize((64, 64))
+        r, g, b = img.split()
+        hist = []
+        for channel in (r, g, b):
+            h = channel.histogram()
+            # Bin into `bins` buckets
+            bucket_size = 256 // bins
+            bucketed = [
+                sum(h[i:i + bucket_size])
+                for i in range(0, 256, bucket_size)
+            ]
+            total = sum(bucketed) or 1
+            hist.extend([v / total for v in bucketed])
+        return hist
     except Exception:
-        return 'unknown'
+        return []
+
+
+def _histogram_similarity(h1, h2):
+    """Intersection similarity between two histograms (0–1)."""
+    if not h1 or not h2 or len(h1) != len(h2):
+        return 0.0
+    return sum(min(a, b) for a, b in zip(h1, h2))
 
 
 def match_products(filepath, filename, products):
     """
     Match uploaded image to products.
-
-    Args:
-        filepath: absolute path to saved upload
-        filename: original filename from user
-        products: list of Product model objects
-
-    Returns:
-        List of (product, score) tuples sorted by score descending.
-        Score is 0–100 (higher = better match).
+    Returns list of (product, score) sorted by score descending.
+    Score 0–100.
     """
     words = _keywords_from_filename(filename)
-    color = _dominant_color_hint(filepath)
+    upload_hist = _color_histogram(filepath)
 
     scored = []
     for product in products:
         score = 0
-        product_name_lower = product.name.lower()
+        name_lower = product.name.lower()
 
-        # --- Filename keyword match (primary signal) ---
+        # --- Filename keyword match (primary) ---
         for word in words:
             if len(word) < 3:
                 continue
-            if word in product_name_lower:
-                score += 40  # direct word hit
-            elif word in KEYWORD_MAP:
-                mapped = KEYWORD_MAP[word]
-                if mapped in product_name_lower:
-                    score += 25  # indirect keyword hit
+            if word in name_lower:
+                score += 45
+            elif word in KEYWORD_MAP and KEYWORD_MAP[word] in name_lower:
+                score += 28
 
-        # --- Color hint (weak secondary signal) ---
-        if color in ('black', 'white') and any(
-            kw in product_name_lower for kw in ['phone', 'laptop', 'headphone', 'samsung', 'iphone', 'sony', 'hp']
-        ):
-            score += 5
+        # --- Color histogram similarity against product image (secondary) ---
+        if product.image and upload_hist:
+            try:
+                import urllib.request
+                import tempfile
+                # Only compare if image is a URL (skip placeholders)
+                if product.image.startswith('http'):
+                    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+                        urllib.request.urlretrieve(product.image, tmp.name)
+                        prod_hist = _color_histogram(tmp.name)
+                        os.unlink(tmp.name)
+                    sim = _histogram_similarity(upload_hist, prod_hist)
+                    score += int(sim * 20)  # max +20 from color
+            except Exception:
+                pass
 
         if score > 0:
             scored.append((product, min(score, 100)))
 
-    # Sort by score descending
     scored.sort(key=lambda x: x[1], reverse=True)
     return scored

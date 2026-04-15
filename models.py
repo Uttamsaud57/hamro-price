@@ -21,6 +21,8 @@ class Seller(db.Model):
     name = db.Column(db.String(100), nullable=False)
     rating = db.Column(db.Float, default=0.0)
     trust_score = db.Column(db.Float, default=0.0)
+    is_verified = db.Column(db.Boolean, default=False)   # verified marketplace badge
+    website = db.Column(db.String(300))                  # official site URL
 
     prices = db.relationship('Price', backref='seller', lazy=True)
     reviews = db.relationship('Review', backref='seller', lazy=True)
