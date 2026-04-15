@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Live Search: {{ query }} – Hamro Price{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <h4 class="mb-0 fw-semibold">
+    <i class="bi bi-broadcast text-danger"></i> Live Price Search
+  </h4>
+  <span class="badge bg-danger">Real-time</span>
+</div>
+
+<!-- Search form -->
+<form class="d-flex mb-4 w-50" method="get" action="{{ url_for('product.live_search') }}">
+  <input class="form-control me-2" type="search" name="q"
+         value="{{ query }}" placeholder="Search live prices..."/>
+  <button class="btn btn-danger" type="submit">
+    <i class="bi bi-search"></i> Search
+  </button>
+</form>
+
+{% if error %}
+  <div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    <p class="mb-0 small mt-1">Sites may be blocking requests or have changed their layout.</p>
+  </div>
+{% endif %}
+
+{% if results %}
+<p class="text-muted small mb-3">
+  Found <strong>{{ results|length }}</strong> results from live sites — sorted cheapest first.
+</p>
+<div class="table-responsive">
+  <table class="table table-hover align-middle shadow-sm">
+    <thead class="table-danger">
+      <tr>
+        <th>#</th>
+        <th>Product</th>
+        <th>Store</th>
+        <th>Price</th>
+        <th>Link</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in results %}
+      <tr {% if loop.first %}class="table-success fw-bold"{% endif %}>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.name }}</td>
+        <td>
+          <span class="badge bg-secondary">{{ item.seller }}</span>
+        </td>
+        <td>
+          Rs. {{ "{:,.0f}".format(item.price) }}
+          {% if loop.first %}
+            <span class="badge bg-success ms-1">Cheapest</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ item.link }}" target="_blank" class="btn btn-sm btn-outline-danger">
+            View <i class="bi bi-box-arrow-up-right"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% elif query and not error %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-cloud-slash fs-1"></i>
+    <p class="mt-3">No live results found for "{{ query }}".</p>
+    <p class="small">Try a shorter or different keyword.</p>
+  </div>
+{% endif %}
+
+<!-- Info box -->
+<div class="alert alert-info mt-4 small">
+  <i class="bi bi-info-circle"></i>
+  Live search fetches real-time prices from <strong>Daraz Nepal</strong> and
+  <strong>SastoDeal</strong>. Results depend on site availability and may vary.
+  Use the regular <a href="{{ url_for('product.search') }}">product search</a>
+  for database results.
+</div>
+{% endblock %}

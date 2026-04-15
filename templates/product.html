@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name }} – Hamro Price{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav class="mb-3" style="font-size:0.82rem;">
+  <a href="{{ url_for('product.index') }}" style="color:#f97316;">Home</a>
+  <span class="mx-2 text-muted">/</span>
+  <a href="{{ url_for('product.search', q=product.name.split()[0]) }}"
+     style="color:#f97316;">Search</a>
+  <span class="mx-2 text-muted">/</span>
+  <span class="text-muted">{{ product.name }}</span>
+</nav>
+
+<div class="row g-4">
+
+  <!-- Product Image & Info -->
+  <div class="col-md-4">
+    <div class="hp-card card">
+      <div class="card-body p-0">
+        <img src="{{ product.image }}" class="img-fluid w-100"
+             style="border-radius:14px 14px 0 0; max-height:260px; object-fit:cover;"
+             alt="{{ product.name }}"/>
+        <div class="p-3">
+          <h5 class="fw-700 mb-1" style="font-weight:700; color:#1a1f36;">{{ product.name }}</h5>
+          <p class="text-muted mb-3" style="font-size:0.875rem;">{{ product.description }}</p>
+          {% if prices %}
+            {% set min_price = prices[0].price %}
+            <div class="d-flex align-items-center gap-2">
+              <span style="font-size:1.4rem; font-weight:800; color:#f97316;">
+                Rs. {{ "{:,.0f}".format(min_price) }}
+              </span>
+              <span class="badge-green"><i class="bi bi-check-circle me-1"></i>Best Price</span>
+            </div>
+            <small class="text-muted">at {{ prices[0].seller.name }}</small>
+            <div class="mt-3">
+              <a href="{{ url_for('compare.add_to_compare', product_id=product.id) }}"
+                 class="btn btn-navy btn-sm">
+                <i class="bi bi-layout-split me-1"></i> Add to Compare
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Price Comparison -->
+  <div class="col-md-8">
+    <div class="section-heading">
+      <i class="bi bi-bar-chart-line" style="color:#f97316;"></i> Price Comparison
+    </div>
+
+    {% if prices %}
+    <div class="hp-table rounded-3 overflow-hidden mb-4">
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Seller</th>
+            <th>Rating</th>
+            <th>Trust</th>
+            <th>Price</th>
+            <th>Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in prices %}
+          <tr {% if loop.first %}class="best-price-row"{% endif %}>
+            <td>
+              <span class="fw-600" style="font-weight:600;">{{ p.seller.name }}</span>
+              {% if loop.first %}
+                <span class="badge-green ms-1">Cheapest</span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="color:#f97316;">
+                {% for i in range(p.seller.rating | int) %}★{% endfor %}
+              </span>
+              <span class="text-muted" style="font-size:0.8rem;">({{ p.seller.rating }})</span>
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-1">
+                <div class="progress" style="width:50px; height:5px;">
+                  <div class="progress-bar"
+                       style="width:{{ (p.seller.trust_score / 10 * 100)|int }}%"></div>
+                </div>
+                <small class="text-muted">{{ p.seller.trust_score }}</small>
+              </div>
+            </td>
+            <td>
+              <span style="font-weight:700; color:#1a1f36;">
+                Rs. {{ "{:,.0f}".format(p.price) }}
+              </span>
+            </td>
+            <td><small class="text-muted">{{ p.updated_at.strftime('%b %d') }}</small></td>
+            <td>
+              <a href="{{ p.link }}" target="_blank" class="btn btn-primary-hp btn-sm">
+                Buy <i class="bi bi-arrow-up-right"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="text-muted">No price data available.</p>
+    {% endif %}
+
+    <!-- Price Alert -->
+    <div class="hp-card card mb-4" style="border-left:4px solid #f97316;">
+      <div class="card-body py-3">
+        <h6 class="fw-700 mb-2" style="font-weight:700;">
+          <i class="bi bi-bell-fill me-1" style="color:#f97316;"></i> Set Price Alert
+        </h6>
+        {% if current_user.is_authenticated %}
+        <form class="d-flex gap-2 align-items-center flex-wrap"
+              method="POST" action="{{ url_for('user.add_alert') }}">
+          <input type="hidden" name="product_id" value="{{ product.id }}"/>
+          <input type="number" name="target_price" class="form-control"
+                 style="max-width:220px;"
+                 placeholder="Alert me when below Rs." min="1" required/>
+          <button class="btn btn-primary-hp">
+            <i class="bi bi-bell me-1"></i> Set Alert
+          </button>
+        </form>
+        {% else %}
+        <p class="text-muted mb-0 small">
+          <a href="{{ url_for('auth.login') }}" style="color:#f97316;">Login</a>
+          to set a price alert for this product.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Price History Chart -->
+    {% if history_data %}
+    <div class="section-heading">
+      <i class="bi bi-graph-up" style="color:#f97316;"></i> Price History
+    </div>
+    <div class="hp-card card">
+      <div class="card-body">
+        <canvas id="priceChart" height="110"></canvas>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Reviews -->
+<div class="row g-4 mt-2">
+  <div class="col-md-6">
+    <div class="section-heading">
+      <i class="bi bi-star-half" style="color:#f97316;"></i> Seller Reviews
+    </div>
+
+    {% if reviews %}
+      {% for review in reviews %}
+      <div class="hp-card card mb-3">
+        <div class="card-body py-3">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="fw-600" style="font-weight:600;">{{ review.user.name }}</span>
+              <span class="badge-navy ms-2">{{ review.seller.name }}</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span style="color:#f97316; font-size:0.9rem;">
+                {% for i in range(review.rating) %}★{% endfor %}
+                <span class="text-muted">{% for i in range(5 - review.rating) %}★{% endfor %}</span>
+              </span>
+              {% if current_user.is_authenticated and current_user.id == review.user_id %}
+              <a href="{{ url_for('review.delete_review', review_id=review.id, product_id=product.id) }}"
+                 class="text-muted" style="font-size:0.8rem;"
+                 onclick="return confirm('Delete your review?')">
+                <i class="bi bi-trash"></i>
+              </a>
+              {% endif %}
+            </div>
+          </div>
+          {% if review.comment %}
+          <p class="mt-2 mb-0 text-muted" style="font-size:0.875rem;">{{ review.comment }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="bi bi-chat-square-text" style="font-size:2rem; color:#cbd5e0;"></i>
+        <p class="mt-2 small">No reviews yet. Be the first!</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Write Review -->
+  <div class="col-md-6">
+    <div class="section-heading">
+      <i class="bi bi-pencil-square" style="color:#f97316;"></i> Write a Review
+    </div>
+    {% if current_user.is_authenticated %}
+    <div class="hp-card card">
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('review.add_review') }}">
+          <input type="hidden" name="product_id" value="{{ product.id }}"/>
+          <div class="mb-3">
+            <label class="form-label">Seller</label>
+            <select name="seller_id" class="form-select" required>
+              {% for seller in sellers %}
+              <option value="{{ seller.id }}">{{ seller.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Your Rating</label>
+            <div class="star-rating d-flex gap-1">
+              {% for i in range(1, 6) %}
+              <label>
+                <input type="radio" name="rating" value="{{ i }}" class="d-none" required/>
+                <span class="star text-muted" data-value="{{ i }}">★</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Comment <small class="text-muted fw-400">(optional)</small></label>
+            <textarea name="comment" class="form-control" rows="3"
+                      placeholder="Share your experience with this seller..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary-hp w-100">
+            <i class="bi bi-send me-1"></i> Submit Review
+          </button>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <div class="hp-card card">
+      <div class="card-body text-center py-4 text-muted">
+        <i class="bi bi-lock" style="font-size:2rem; color:#cbd5e0;"></i>
+        <p class="mt-2 mb-3 small">Login to write a review.</p>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary-hp btn-sm">Login</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{% if history_data %}
+<script>
+  const historyData = {{ history_data | tojson }};
+  const colors = ['#f97316','#1a1f36','#16a34a','#7c3aed','#0ea5e9'];
+  const datasets = Object.entries(historyData).map(([seller, data], i) => ({
+    label: seller,
+    data: data.prices,
+    borderColor: colors[i % colors.length],
+    backgroundColor: colors[i % colors.length] + '18',
+    tension: 0.4,
+    fill: true,
+    pointRadius: 4,
+    pointBackgroundColor: colors[i % colors.length],
+  }));
+  new Chart(document.getElementById('priceChart'), {
+    type: 'line',
+    data: { labels: Object.values(historyData)[0].dates, datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 12 }, usePointStyle: true } }
+      },
+      scales: {
+        y: {
+          grid: { color: '#f0f0f0' },
+          ticks: { callback: v => 'Rs. ' + v.toLocaleString(), font: { size: 11 } }
+        },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+</script>
+{% endif %}
+
+<script>
+  const stars = document.querySelectorAll('.star-rating .star');
+  stars.forEach(star => {
+    star.addEventListener('click', () => {
+      const val = parseInt(star.dataset.value);
+      star.previousElementSibling.checked = true;
+      stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value) <= val));
+    });
+    star.addEventListener('mouseover', () => {
+      const val = parseInt(star.dataset.value);
+      stars.forEach(s => s.style.color = parseInt(s.dataset.value) <= val ? '#f97316' : '');
+    });
+    star.addEventListener('mouseout', () => {
+      stars.forEach(s => s.style.color = s.classList.contains('active') ? '#f97316' : '');
+    });
+  });
+</script>
+{% endblock %}

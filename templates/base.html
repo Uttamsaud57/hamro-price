@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Hamro Price{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+
+    <!-- Brand -->
+    <a class="navbar-brand" href="{{ url_for('product.index') }}">
+      <i class="bi bi-tags-fill me-1" style="color:#f97316;"></i>
+      Hamro<span>Price</span>
+    </a>
+
+    <button class="navbar-toggler border-0" type="button"
+            data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <i class="bi bi-list text-white fs-4"></i>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navMenu">
+      <!-- Centre search -->
+      <form class="d-flex navbar-search mx-auto" style="width:38%;"
+            action="{{ url_for('product.search') }}" method="get">
+        <input class="form-control" type="search" name="q" placeholder="Search products..."/>
+        <button class="btn" type="submit"><i class="bi bi-search"></i></button>
+      </form>
+
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('product.live_search') }}">
+            <i class="bi bi-broadcast-pin"></i> Live
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('image_search.image_search') }}">
+            <i class="bi bi-camera"></i> Image
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link position-relative" href="{{ url_for('compare.compare') }}">
+            <i class="bi bi-layout-split"></i> Compare
+            {% set compare_count = session.get('compare_ids', [])|length %}
+            {% if compare_count > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                  style="background:#f97316; font-size:0.65rem;">
+              {{ compare_count }}
+            </span>
+            {% endif %}
+          </a>
+        </li>
+
+        {% if current_user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('user.profile') }}">
+              <i class="bi bi-person-circle"></i> {{ current_user.name.split()[0] }}
+            </a>
+          </li>
+          {% if current_user.is_admin %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+              <i class="bi bi-speedometer2"></i> Admin
+            </a>
+          </li>
+          {% endif %}
+          <li class="nav-item ms-1">
+            <a class="nav-link btn-navy px-3 py-1 rounded-pill text-white"
+               href="{{ url_for('auth.logout') }}">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+          </li>
+          <li class="nav-item ms-1">
+            <a class="nav-link btn-primary-hp px-3 py-1 rounded-pill"
+               href="{{ url_for('auth.register') }}">Register</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Flash messages -->
+<div class="container mt-3">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show d-flex align-items-center gap-2">
+        {% if category == 'success' %}<i class="bi bi-check-circle-fill"></i>
+        {% elif category == 'danger' %}<i class="bi bi-x-circle-fill"></i>
+        {% elif category == 'info' %}<i class="bi bi-info-circle-fill"></i>
+        {% else %}<i class="bi bi-exclamation-triangle-fill"></i>{% endif %}
+        {{ message }}
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<!-- Page content -->
+<main class="container my-4">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="mt-5">
+  <div class="container">
+    <div class="row py-4 align-items-center">
+      <div class="col-md-4 mb-3 mb-md-0">
+        <div class="fw-800 fs-5" style="color:#fff; font-weight:800;">
+          <i class="bi bi-tags-fill me-1" style="color:#f97316;"></i>
+          Hamro<span style="color:#f97316;">Price</span>
+        </div>
+        <p class="mt-1 mb-0" style="font-size:0.8rem; color:rgba(255,255,255,0.5);">
+          Nepal's smart price comparison platform.
+        </p>
+      </div>
+      <div class="col-md-4 text-md-center mb-3 mb-md-0">
+        <a href="{{ url_for('product.index') }}" class="me-3">Home</a>
+        <a href="{{ url_for('product.live_search') }}" class="me-3">Live Prices</a>
+        <a href="{{ url_for('image_search.image_search') }}">Image Search</a>
+      </div>
+      <div class="col-md-4 text-md-end">
+        <small style="color:rgba(255,255,255,0.4);">© 2025 Hamro Price</small>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Back to top -->
+<button id="backToTop" style="position:fixed;bottom:24px;right:24px;display:none;z-index:999;">
+  <i class="bi bi-arrow-up text-white"></i>
+</button>
+
+<!-- Floating Compare Bar -->
+{% set compare_ids = session.get('compare_ids', []) %}
+{% if compare_ids %}
+<div id="compareBar" class="visible">
+  <div class="compare-items">
+    <span style="font-size:0.8rem; color:rgba(255,255,255,0.6); me-2;">
+      <i class="bi bi-layout-split me-1"></i> Comparing:
+    </span>
+    {% for pid in compare_ids %}
+      {% set p = products_in_compare[pid] if products_in_compare is defined else none %}
+      <div class="compare-chip">
+        <span>Product #{{ pid }}</span>
+        <a href="{{ url_for('compare.remove_from_compare', product_id=pid) }}">✕</a>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('compare.compare') }}" class="btn btn-primary-hp btn-sm">
+      <i class="bi bi-layout-split me-1"></i> Compare Now
+    </a>
+    <a href="{{ url_for('compare.clear_compare') }}"
+       class="btn btn-sm" style="color:rgba(255,255,255,0.6);">Clear</a>
+  </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  const btn = document.getElementById('backToTop');
+  window.addEventListener('scroll', () => btn.style.display = window.scrollY > 300 ? 'flex' : 'none');
+  btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  btn.style.cssText += ';align-items:center;justify-content:center;';
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

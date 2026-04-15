@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}My Profile – Hamro Price{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- User Info Card -->
+  <div class="col-md-3">
+    <div class="card shadow-sm text-center p-4">
+      <div class="display-1 text-danger mb-2">
+        <i class="bi bi-person-circle"></i>
+      </div>
+      <h5 class="fw-bold">{{ current_user.name }}</h5>
+      <p class="text-muted small">{{ current_user.email }}</p>
+      <p class="text-muted small">Joined: {{ current_user.created_at.strftime('%b %Y') }}</p>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm mt-2">Logout</a>
+    </div>
+  </div>
+
+  <!-- Alerts Panel -->
+  <div class="col-md-9">
+
+    <!-- Triggered Alerts Banner -->
+    {% if triggered %}
+    <div class="alert alert-success">
+      <strong><i class="bi bi-bell-fill"></i> Price Drop Alerts!</strong>
+      {% for t in triggered %}
+      <div class="mt-1">
+        <a href="{{ url_for('product.product_detail', product_id=t.alert.product_id) }}"
+           class="fw-semibold text-success">
+          {{ t.alert.product.name }}
+        </a>
+        is now <strong>Rs. {{ "{:,.0f}".format(t.current_price) }}</strong>
+        at {{ t.seller }} — below your target of
+        Rs. {{ "{:,.0f}".format(t.alert.target_price) }}!
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <h5 class="fw-semibold mb-3"><i class="bi bi-bell"></i> My Price Alerts</h5>
+
+    {% if alerts %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-danger">
+          <tr>
+            <th>Product</th>
+            <th>Target Price</th>
+            <th>Current Lowest</th>
+            <th>Status</th>
+            <th>Set On</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for alert in alerts %}
+          {% set min_price_entry = alert.product.prices | sort(attribute='price') | first %}
+          <tr>
+            <td>
+              <a href="{{ url_for('product.product_detail', product_id=alert.product_id) }}">
+                {{ alert.product.name }}
+              </a>
+            </td>
+            <td>Rs. {{ "{:,.0f}".format(alert.target_price) }}</td>
+            <td>
+              {% if min_price_entry %}
+                Rs. {{ "{:,.0f}".format(min_price_entry.price) }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if not alert.is_active %}
+                <span class="badge bg-secondary">Inactive</span>
+              {% elif min_price_entry and min_price_entry.price <= alert.target_price %}
+                <span class="badge bg-success">Triggered!</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Watching</span>
+              {% endif %}
+            </td>
+            <td><small class="text-muted">{{ alert.created_at.strftime('%b %d, %Y') }}</small></td>
+            <td>
+              <a href="{{ url_for('user.delete_alert', alert_id=alert.id) }}"
+                 class="btn btn-sm btn-outline-danger"
+                 onclick="return confirm('Remove this alert?')">
+                <i class="bi bi-trash"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-bell-slash fs-1"></i>
+        <p class="mt-2">No alerts set yet. Go to a product page and set a target price.</p>
+        <a href="{{ url_for('product.index') }}" class="btn btn-outline-danger">Browse Products</a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard – Hamro Price{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h5 class="fw-700 mb-0" style="font-weight:700;">
+      <i class="bi bi-speedometer2 me-2" style="color:#f97316;"></i>Admin Dashboard
+    </h5>
+    <small class="text-muted">Manage products, sellers and prices</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin.check_alerts') }}" class="btn btn-sm btn-primary-hp">
+      <i class="bi bi-bell-fill me-1"></i> Check Alerts
+    </a>
+    <a href="{{ url_for('admin.test_email') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-envelope me-1"></i> Test Email
+    </a>
+    <a href="{{ url_for('admin.manage_users') }}" class="btn btn-sm btn-navy">
+      <i class="bi bi-people me-1"></i> Users
+    </a>
+    <span class="badge-navy"><i class="bi bi-box-seam me-1"></i>{{ products|length }} Products</span>
+    <span class="badge-navy"><i class="bi bi-shop me-1"></i>{{ sellers|length }} Sellers</span>
+    <span class="badge-navy"><i class="bi bi-tag me-1"></i>{{ prices|length }} Prices</span>
+  </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" id="adminTabs">
+  <li class="nav-item">
+    <a class="nav-link active" data-bs-toggle="tab" href="#products-tab">
+      <i class="bi bi-box-seam me-1"></i>Products
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#sellers-tab">
+      <i class="bi bi-shop me-1"></i>Sellers
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#prices-tab">
+      <i class="bi bi-tag me-1"></i>Prices
+    </a>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- Products Tab -->
+  <div class="tab-pane fade show active" id="products-tab">
+    <div class="hp-card card mb-4">
+      <div class="card-body">
+        <p class="fw-600 mb-3" style="font-weight:600; font-size:0.875rem;">
+          <i class="bi bi-plus-circle me-1" style="color:#f97316;"></i> Add New Product
+        </p>
+        <form class="row g-2" method="POST" action="{{ url_for('admin.add_product') }}">
+          <div class="col-md-3">
+            <input name="name" class="form-control" placeholder="Product name" required/>
+          </div>
+          <div class="col-md-4">
+            <input name="description" class="form-control" placeholder="Description"/>
+          </div>
+          <div class="col-md-3">
+            <input name="image" class="form-control" placeholder="Image URL"/>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary-hp w-100">Add Product</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="hp-table rounded-3 overflow-hidden">
+      <table class="table mb-0">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>Description</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+          <tr>
+            <td><span class="badge-navy">{{ p.id }}</span></td>
+            <td class="fw-600" style="font-weight:600;">{{ p.name }}</td>
+            <td class="text-muted" style="font-size:0.85rem;">
+              {{ p.description[:55] if p.description else '—' }}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('admin.edit_product', pid=p.id) }}"
+                   class="btn btn-sm btn-navy">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{{ url_for('admin.delete_product', pid=p.id) }}"
+                   class="btn btn-sm btn-outline-danger"
+                   onclick="return confirm('Delete this product?')">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sellers Tab -->
+  <div class="tab-pane fade" id="sellers-tab">
+    <div class="hp-card card mb-4">
+      <div class="card-body">
+        <p class="fw-600 mb-3" style="font-weight:600; font-size:0.875rem;">
+          <i class="bi bi-plus-circle me-1" style="color:#f97316;"></i> Add New Seller
+        </p>
+        <form class="row g-2" method="POST" action="{{ url_for('admin.add_seller') }}">
+          <div class="col-md-4">
+            <input name="name" class="form-control" placeholder="Seller name" required/>
+          </div>
+          <div class="col-md-2">
+            <input name="rating" type="number" step="0.1" min="0" max="5"
+                   class="form-control" placeholder="Rating (0-5)"/>
+          </div>
+          <div class="col-md-2">
+            <input name="trust_score" type="number" step="0.1" min="0" max="10"
+                   class="form-control" placeholder="Trust (0-10)"/>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary-hp w-100">Add Seller</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="hp-table rounded-3 overflow-hidden">
+      <table class="table mb-0">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>Rating</th><th>Trust Score</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for s in sellers %}
+          <tr>
+            <td><span class="badge-navy">{{ s.id }}</span></td>
+            <td class="fw-600" style="font-weight:600;">{{ s.name }}</td>
+            <td>
+              <span style="color:#f97316;">
+                {% for i in range(s.rating | int) %}★{% endfor %}
+              </span>
+              <small class="text-muted">({{ s.rating }})</small>
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress" style="width:60px; height:6px;">
+                  <div class="progress-bar"
+                       style="width:{{ (s.trust_score / 10 * 100)|int }}%"></div>
+                </div>
+                <small>{{ s.trust_score }}/10</small>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('admin.edit_seller', sid=s.id) }}"
+                   class="btn btn-sm btn-navy">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{{ url_for('admin.delete_seller', sid=s.id) }}"
+                   class="btn btn-sm btn-outline-danger"
+                   onclick="return confirm('Delete this seller?')">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Prices Tab -->
+  <div class="tab-pane fade" id="prices-tab">
+    <div class="hp-card card mb-4">
+      <div class="card-body">
+        <p class="fw-600 mb-3" style="font-weight:600; font-size:0.875rem;">
+          <i class="bi bi-plus-circle me-1" style="color:#f97316;"></i> Add Price Entry
+        </p>
+        <form class="row g-2" method="POST" action="{{ url_for('admin.add_price') }}">
+          <div class="col-md-2">
+            <select name="product_id" class="form-select" required>
+              <option value="">Product</option>
+              {% for p in products %}
+              <option value="{{ p.id }}">{{ p.name[:25] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select name="seller_id" class="form-select" required>
+              <option value="">Seller</option>
+              {% for s in sellers %}
+              <option value="{{ s.id }}">{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <input name="price" type="number" class="form-control" placeholder="Price (Rs.)" required/>
+          </div>
+          <div class="col-md-4">
+            <input name="link" class="form-control" placeholder="Product URL"/>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary-hp w-100">Add Price</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="hp-table rounded-3 overflow-hidden">
+      <table class="table mb-0">
+        <thead>
+          <tr><th>#</th><th>Product</th><th>Seller</th><th>Price</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for pr in prices %}
+          <tr>
+            <td><span class="badge-navy">{{ pr.id }}</span></td>
+            <td style="font-size:0.875rem;">{{ pr.product.name[:30] }}</td>
+            <td><span class="badge-orange">{{ pr.seller.name }}</span></td>
+            <td class="fw-600" style="font-weight:600; color:#f97316;">
+              Rs. {{ "{:,.0f}".format(pr.price) }}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('admin.edit_price', pid=pr.id) }}"
+                   class="btn btn-sm btn-navy">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{{ url_for('admin.delete_price', pid=pr.id) }}"
+                   class="btn btn-sm btn-outline-danger"
+                   onclick="return confirm('Delete this price?')">
+                  <i class="bi bi-trash"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

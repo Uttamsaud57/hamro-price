@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}Hamro Price – Compare Prices in Nepal{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="hero-section mb-5">
+  <div class="position-relative" style="z-index:1;">
+    <p class="mb-2" style="color:#f97316; font-weight:600; font-size:0.85rem; letter-spacing:1px; text-transform:uppercase;">
+      <i class="bi bi-lightning-charge-fill me-1"></i> Nepal's #1 Price Comparison
+    </p>
+    <h1>Compare Prices.<br>Save More Money.</h1>
+    <p>Search products from Daraz, SastoDeal, HamroBazar and more — all in one place.</p>
+    <form class="d-flex hero-search mt-4" style="max-width:520px;"
+          action="{{ url_for('product.search') }}" method="get">
+      <input class="form-control" type="search" name="q"
+             placeholder="e.g. Samsung Galaxy, iPhone 15, Sony headphones..."/>
+      <button class="btn-search btn" type="submit">
+        <i class="bi bi-search me-1"></i> Search
+      </button>
+    </form>
+    <div class="mt-3 d-flex gap-3 flex-wrap" style="font-size:0.82rem; color:rgba(255,255,255,0.6);">
+      <span><i class="bi bi-check2 me-1" style="color:#f97316;"></i>Free to use</span>
+      <span><i class="bi bi-check2 me-1" style="color:#f97316;"></i>Real-time prices</span>
+      <span><i class="bi bi-check2 me-1" style="color:#f97316;"></i>Price alerts</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-5">
+  <div class="col-4">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+      <div class="stat-number">{{ stats.products }}</div>
+      <div class="stat-label">Products</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-shop"></i></div>
+      <div class="stat-number">{{ stats.sellers }}</div>
+      <div class="stat-label">Sellers</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="stat-card">
+      <div class="stat-icon"><i class="bi bi-tag"></i></div>
+      <div class="stat-number">{{ stats.prices }}</div>
+      <div class="stat-label">Listings</div>
+    </div>
+  </div>
+</div>
+
+<!-- Featured Products -->
+<div class="section-heading">
+  <i class="bi bi-fire" style="color:#f97316;"></i> Featured Products
+</div>
+
+<div class="row g-4">
+  {% for product in featured %}
+  <div class="col-sm-6 col-md-3">
+    <a href="{{ url_for('product.product_detail', product_id=product.id) }}"
+       class="text-decoration-none">
+      <div class="product-card card h-100">
+        <img src="{{ product.image }}" class="card-img-top" alt="{{ product.name }}"/>
+        <div class="card-body d-flex flex-column">
+          <h6 class="card-title">{{ product.name }}</h6>
+          <p class="card-text flex-grow-1">{{ product.description[:75] }}...</p>
+          {% if product.prices %}
+            {% set min_price = product.prices | map(attribute='price') | min %}
+            <div class="mt-auto">
+              <span class="price-badge">Rs. {{ "{:,.0f}".format(min_price) }}</span>
+              <span class="ms-2" style="font-size:0.75rem; color:#718096;">
+                {{ product.prices | length }} seller{{ 's' if product.prices|length > 1 }}
+              </span>
+            </div>
+            <a href="{{ url_for('compare.add_to_compare', product_id=product.id) }}"
+               class="btn btn-sm btn-navy mt-2 w-100"
+               onclick="event.preventDefault(); event.stopPropagation();
+                        window.location='{{ url_for('compare.add_to_compare', product_id=product.id) }}'">
+              <i class="bi bi-layout-split me-1"></i> Compare
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+  </div>
+  {% else %}
+  <p class="text-muted">No products yet.</p>
+  {% endfor %}
+</div>
+
+<!-- Feature highlights -->
+<div class="row g-4 mt-3">
+  <div class="col-md-4">
+    <div class="hp-card card h-100">
+      <div class="card-body text-center py-4">
+        <div class="mb-3" style="font-size:2.2rem; color:#f97316;">
+          <i class="bi bi-broadcast-pin"></i>
+        </div>
+        <h6 class="fw-700" style="font-weight:700;">Live Price Search</h6>
+        <p class="text-muted small mb-3">Fetch real-time prices directly from Daraz and SastoDeal.</p>
+        <a href="{{ url_for('product.live_search') }}" class="btn btn-primary-hp btn-sm">Try Now</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="hp-card card h-100">
+      <div class="card-body text-center py-4">
+        <div class="mb-3" style="font-size:2.2rem; color:#f97316;">
+          <i class="bi bi-bell-fill"></i>
+        </div>
+        <h6 class="fw-700" style="font-weight:700;">Price Alerts</h6>
+        <p class="text-muted small mb-3">Set a target price and get notified when it drops.</p>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary-hp btn-sm">Get Started</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="hp-card card h-100">
+      <div class="card-body text-center py-4">
+        <div class="mb-3" style="font-size:2.2rem; color:#f97316;">
+          <i class="bi bi-camera-fill"></i>
+        </div>
+        <h6 class="fw-700" style="font-weight:700;">Image Search</h6>
+        <p class="text-muted small mb-3">Upload a product photo and find matching listings instantly.</p>
+        <a href="{{ url_for('image_search.image_search') }}" class="btn btn-primary-hp btn-sm">Upload Image</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

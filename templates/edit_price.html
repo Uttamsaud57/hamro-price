@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Edit Price – Hamro Price{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-4"><i class="bi bi-pencil-square"></i> Edit Price Entry</h5>
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label">Product</label>
+            <select name="product_id" class="form-select" required>
+              {% for p in products %}
+              <option value="{{ p.id }}"
+                {% if p.id == price.product_id %}selected{% endif %}>
+                {{ p.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Seller</label>
+            <select name="seller_id" class="form-select" required>
+              {% for s in sellers %}
+              <option value="{{ s.id }}"
+                {% if s.id == price.seller_id %}selected{% endif %}>
+                {{ s.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Price (Rs.)</label>
+            <input type="number" name="price" class="form-control"
+                   step="0.01" value="{{ price.price }}" required/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Product Link</label>
+            <input type="text" name="link" class="form-control"
+                   value="{{ price.link }}"/>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">Save Changes</button>
+            <a href="{{ url_for('admin.dashboard') }}"
+               class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

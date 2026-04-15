@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block title %}Image Search – Hamro Price{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <h4 class="mb-0 fw-semibold">
+    <i class="bi bi-camera text-danger"></i> Image Search
+  </h4>
+  <span class="badge bg-secondary">Beta</span>
+</div>
+
+<div class="row g-4">
+
+  <!-- Upload Form -->
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" id="imgForm">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Upload a product image</label>
+
+            <!-- Drag & drop zone -->
+            <div id="dropZone"
+                 class="border border-2 border-dashed rounded-3 text-center p-4 text-muted"
+                 style="cursor:pointer; border-color:#dee2e6 !important;">
+              <i class="bi bi-cloud-arrow-up fs-2 text-danger"></i>
+              <p class="mt-2 mb-1">Drag & drop or click to upload</p>
+              <small>JPG, PNG, WEBP supported</small>
+              <input type="file" name="image" id="imageInput"
+                     accept=".jpg,.jpeg,.png,.webp,.gif"
+                     class="d-none" required/>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <div id="previewBox" class="mb-3 text-center d-none">
+            <img id="previewImg" src="" alt="Preview"
+                 class="img-fluid rounded shadow-sm" style="max-height:200px;"/>
+            <p id="previewName" class="text-muted small mt-1"></p>
+          </div>
+
+          {% if error %}
+          <div class="alert alert-warning small py-2">
+            <i class="bi bi-exclamation-triangle"></i> {{ error }}
+          </div>
+          {% endif %}
+
+          <button type="submit" class="btn btn-danger w-100">
+            <i class="bi bi-search"></i> Find Products
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="card mt-3 border-0 bg-light">
+      <div class="card-body small text-muted">
+        <p class="fw-semibold mb-1">How it works</p>
+        <ul class="ps-3 mb-0">
+          <li>Upload a product photo</li>
+          <li>We match it by filename keywords + image color</li>
+          <li>Results show best matching products</li>
+          <li>Phase 2: AI-powered visual matching (coming soon)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="col-md-8">
+    {% if preview_url %}
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <img src="{{ preview_url }}" alt="Uploaded"
+           class="rounded shadow-sm" style="height:60px; width:60px; object-fit:cover;"/>
+      <div>
+        <p class="mb-0 fw-semibold">Uploaded image</p>
+        <small class="text-muted">Showing best matches below</small>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if matches %}
+    <h5 class="fw-semibold mb-3">
+      Matching Products
+      <small class="text-muted fs-6">({{ matches|length }} found)</small>
+    </h5>
+    <div class="row g-3">
+      {% for product, score in matches %}
+      <div class="col-sm-6">
+        <a href="{{ url_for('product.product_detail', product_id=product.id) }}"
+           class="text-decoration-none">
+          <div class="card h-100 shadow-sm product-card">
+            <img src="{{ product.image }}" class="card-img-top"
+                 alt="{{ product.name }}" style="height:160px; object-fit:cover;"/>
+            <div class="card-body">
+              <h6 class="card-title text-dark fw-semibold">{{ product.name }}</h6>
+              <p class="card-text text-muted small">
+                {{ product.description[:70] }}...
+              </p>
+              <!-- Match confidence bar -->
+              <div class="d-flex align-items-center gap-2 mt-2">
+                <div class="progress flex-grow-1" style="height:6px;">
+                  <div class="progress-bar bg-danger" style="width:{{ score }}%"></div>
+                </div>
+                <small class="text-muted">{{ score }}% match</small>
+              </div>
+              {% if product.prices %}
+                {% set min_price = product.prices | map(attribute='price') | min %}
+                <span class="badge bg-danger mt-2">
+                  From Rs. {{ "{:,.0f}".format(min_price) }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% elif request.method == 'POST' and not error %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-image fs-1"></i>
+        <p class="mt-3">No matches found. Try renaming your image to include
+          the product name (e.g. <code>samsung-phone.jpg</code>).</p>
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-camera fs-1"></i>
+        <p class="mt-3">Upload an image to find matching products.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const dropZone = document.getElementById('dropZone');
+  const imageInput = document.getElementById('imageInput');
+  const previewBox = document.getElementById('previewBox');
+  const previewImg = document.getElementById('previewImg');
+  const previewName = document.getElementById('previewName');
+
+  // Click to open file picker
+  dropZone.addEventListener('click', () => imageInput.click());
+
+  // Drag over styling
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#dc3545';
+    dropZone.style.background = '#fff5f5';
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.style.borderColor = '';
+    dropZone.style.background = '';
+  });
+
+  // Drop file
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.style.borderColor = '';
+    dropZone.style.background = '';
+    const file = e.dataTransfer.files[0];
+    if (file) setPreview(file);
+    // Assign to input
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    imageInput.files = dt.files;
+  });
+
+  // File input change
+  imageInput.addEventListener('change', () => {
+    if (imageInput.files[0]) setPreview(imageInput.files[0]);
+  });
+
+  function setPreview(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target.result;
+      previewName.textContent = file.name;
+      previewBox.classList.remove('d-none');
+      dropZone.classList.add('d-none');
+    };
+    reader.readAsDataURL(file);
+  }
+</script>
+{% endblock %}
