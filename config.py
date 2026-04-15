@@ -1,23 +1,19 @@
 import os
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+def get_database_url():
+    url = os.environ.get('DATABASE_URL', '')
+    # Render gives 'postgres://' but SQLAlchemy needs 'postgresql://'
+    if url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql://', 1)
+    return url or 'sqlite:///hamro_price.db'
 
 
 class Config:
-    # Secret key — always set via environment variable in production
     SECRET_KEY = os.environ.get('SECRET_KEY', 'hamro-price-dev-secret-key')
 
-    # Database — use DATABASE_URL env var on Render (PostgreSQL)
-    # Falls back to local SQLite for development
-    DATABASE_URL = os.environ.get('DATABASE_URL', '')
-
-    if DATABASE_URL.startswith('postgres://'):
-        # Render provides postgres:// but SQLAlchemy needs postgresql://
-        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-
-    SQLALCHEMY_DATABASE_URI = DATABASE_URL or (
-        'sqlite:///' + os.path.join(BASE_DIR, 'hamro_price.db')
-    )
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    SQLALCHEMY_DATABASE_URI = get_database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Flask-Mail (Gmail SMTP)
